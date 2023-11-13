@@ -7,6 +7,7 @@ import com.example.enetcom.roomwordsample.adapter.WordListAdapter;
 import com.example.enetcom.roomwordsample.model.Word;
 import com.google.android.material.snackbar.Snackbar;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -14,6 +15,8 @@ import android.view.View;
 
 import androidx.core.view.WindowCompat;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.RecyclerView;
 
 
 import com.example.enetcom.roomwordsample.databinding.ActivityMainBinding;
@@ -31,6 +34,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
+
         super.onCreate(savedInstanceState);
 
 
@@ -46,6 +52,32 @@ public class MainActivity extends AppCompatActivity {
         mWordViewModel.getAllWords().observe(this, words -> {
             // Mettre à jour la copie en cache des mots dans l'adaptateur.
             mAdapter.setWords(words);
+
+            // Ajouter la fonctionnalité de glisser pour supprimer les éléments de la recyclerview.
+            ItemTouchHelper helper = new ItemTouchHelper(
+                    new ItemTouchHelper.SimpleCallback(0,
+                            ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+                        @Override
+                        public boolean onMove(@NonNull RecyclerView recyclerView,
+                                              @NonNull RecyclerView.ViewHolder viewHolder,
+                                              @NonNull RecyclerView.ViewHolder target) {
+                            return false;
+                        }
+
+                        @Override
+                        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder,
+                                             int direction) {
+                            int position = viewHolder.getAdapterPosition();
+                            Word swipedWord = mAdapter.getWordAtPosition(position);
+                            Toast.makeText(MainActivity.this, "Deleting " +
+                                    swipedWord.getWord(), Toast.LENGTH_LONG).show();
+
+                            // Supprimer le mot
+                            mWordViewModel.deleteWord(swipedWord);
+                        }
+                    });
+
+            helper.attachToRecyclerView(binding.contentMain.recyclerview);
         });
 
         binding.fab.setOnClickListener(new View.OnClickListener() {
@@ -64,7 +96,6 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
@@ -72,12 +103,19 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.clear_data) {
+            // Add a toast just for confirmation
+            Toast.makeText(this, "Clearing the data...",
+                    Toast.LENGTH_SHORT).show();
+
+            // Effacer les données existantes
+            mWordViewModel.deleteAll();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
+
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
@@ -91,5 +129,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_LONG).show();
         }
     }
+
+
 
 }
